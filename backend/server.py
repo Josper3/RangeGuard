@@ -443,7 +443,9 @@ async def check_intersection(data: IntersectionRequest):
                     "start_time": zone["start_time"],
                     "end_time": zone["end_time"],
                     "overlap_percentage": overlap_pct,
-                    "buffer_meters": zone.get("buffer_meters", 200)
+                    "buffer_meters": zone.get("buffer_meters", 200),
+                    "geometry": zone["geometry"],
+                    "buffered_geometry": zone.get("buffered_geometry")
                 })
         except Exception as e:
             logger.error(f"Intersection check error for zone {zone.get('id')}: {e}")
