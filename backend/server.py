@@ -324,9 +324,9 @@ async def get_my_zones(user = Depends(get_current_user)):
 async def upload_route(
     file: UploadFile = File(...),
     name: str = Form(""),
-    authorization: str = Form("")
+    authorization: Optional[str] = Header(None)
 ):
-    user = await get_optional_user(authorization if authorization.startswith("Bearer") else None)
+    user = await get_optional_user(authorization)
     
     content = await file.read()
     content_str = content.decode('utf-8')
