@@ -270,6 +270,49 @@ class RangeGuardAPITester:
             user_data
         )
         
+    def test_pdf_generation(self):
+        """Test POST /api/reports/pdf"""
+        # Test PDF generation with same route geometry
+        route_geometry = {
+            "type": "LineString",
+            "coordinates": [
+                [-3.7, 40.5],  # Start point inside potential zone
+                [-3.5, 40.3]   # End point outside zone
+            ]
+        }
+        
+        pdf_data = {
+            "route_geometry": route_geometry
+        }
+        
+        print(f"\n🔍 Testing PDF Generation...")
+        url = f"{self.api_url}/reports/pdf"
+        headers = {'Content-Type': 'application/json'}
+        if self.token:
+            headers['Authorization'] = f'Bearer {self.token}'
+        
+        try:
+            response = requests.post(url, json=pdf_data, headers=headers, timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                # Check if response is PDF content
+                is_pdf = response.headers.get('content-type') == 'application/pdf'
+                pdf_size = len(response.content)
+                
+                self.log_test("PDF Generation", success)
+                print(f"   PDF Content Type: {response.headers.get('content-type')}")
+                print(f"   PDF Size: {pdf_size} bytes")
+                print(f"   Is Valid PDF: {is_pdf}")
+                
+                return success and is_pdf and pdf_size > 1000  # Basic validation
+            else:
+                self.log_test("PDF Generation", False, response.text, response.status_code)
+                return False
+                
+        except Exception as e:
+            self.log_test("PDF Generation", False, str(e))
+            return False
         return success
 
     def run_all_tests(self):
