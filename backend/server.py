@@ -374,8 +374,7 @@ async def upload_route(
     return route_doc
 
 @api_router.get("/routes")
-async def get_routes(authorization: str = ""):
-    user = await get_current_user(authorization)
+async def get_routes(user = Depends(get_current_user)):
     routes = await db.routes.find({"user_id": user["id"]}, {"_id": 0}).to_list(1000)
     return routes
 
