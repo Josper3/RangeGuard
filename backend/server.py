@@ -249,6 +249,11 @@ async def create_zone(data: ZoneCreate, user = Depends(get_current_user)):
     await db.zones.insert_one(zone_doc)
     
     zone_doc.pop("_id", None)
+    
+    # Background: check existing routes against this new zone and notify users
+    import asyncio
+    asyncio.create_task(check_routes_against_new_zone(zone_doc))
+    
     return zone_doc
 
 @api_router.get("/zones")
