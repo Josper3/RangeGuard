@@ -618,6 +618,70 @@ async def check_routes_against_new_zone(zone_doc):
     except Exception as e:
         logger.error(f"Error in check_routes_against_new_zone: {e}")
 
+async def check_uploaded_route_against_zones(route_doc, user_id):
+    """When a route is uploaded, check against all zones (current and future) and notify."""
+    try:
+        route_shape = shape(route_doc["geometry"])
+        
+        # Get all zones (not just active - include future ones)
+        all_zones = await db.zones.find(
+            {"end_time": {"$gte": datetime.now(timezone.utc).isoformat()}},
+            {"_id": 0}
+        ).to_list(5000)
+        
+        for zone in all_zones:
+            try:
+                zone_shape = shape(zone.get("buffered_geometry", zone["geometry"]))
+                original_zone_shape = shape(zone["geometry"])
+                
+                is_contained = original_zone_shape.contains(route_shape) or zone_shape.contains(route_shape)
+                is_intersecting = route_shape.intersects(zone_shape)
+                
+                if is_contained or is_intersecting:
+                    if is_contained:
+                        title = f"CRITICAL: '{route_doc['name']}' is inside hunting zone '{zone['name']}'"
+                        message = (
+                            f"Your newly uploaded route '{route_doc['name']}' is completely inside "
+                            f"the hunting zone '{zone['name']}' ({zone.get('association_name', '')}).\n"
+                            f"Active period: {zone['start_time'][:16]} - {zone['end_time'][:16]}.\n"
+                            f"Do NOT use this route during hunting hours."
+                        )
+                        conflict_type = "contained"
+                    else:
+                        intersection = route_shape.intersection(zone_shape)
+                        overlap_length = intersection.length if hasattr(intersection, 'length') else 0
+                        route_length = route_shape.length if route_shape.length > 0 else 1
+                        overlap_pct = min(round((overlap_length / route_length) * 100, 1), 100)
+                        title = f"WARNING: '{route_doc['name']}' crosses hunting zone '{zone['name']}'"
+                        message = (
+                            f"Your route '{route_doc['name']}' intersects ({overlap_pct}%) with "
+                            f"the hunting zone '{zone['name']}' ({zone.get('association_name', '')}).\n"
+                            f"Active period: {zone['start_time'][:16]} - {zone['end_time'][:16]}.\n"
+                            f"Avoid this area during hunting hours."
+                        )
+                        conflict_type = "intersects"
+                    
+                    await create_notification(
+                        user_id=user_id,
+                        notif_type="route_warning",
+                        title=title,
+                        message=message,
+                        data={
+                            "route_id": route_doc["id"],
+                            "route_name": route_doc["name"],
+                            "zone_id": zone["id"],
+                            "zone_name": zone["name"],
+                            "conflict_type": conflict_type,
+                            "zone_start": zone["start_time"],
+                            "zone_end": zone["end_time"]
+                        }
+                    )
+            except Exception as e:
+                logger.error(f"Error checking zone {zone.get('id')} for uploaded route: {e}")
+                continue
+    except Exception as e:
+        logger.error(f"Error in check_uploaded_route_against_zones: {e}")
+
 # ==================== PDF REPORT ====================
 
 @api_router.post("/reports/pdf")
