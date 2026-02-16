@@ -74,12 +74,14 @@ export default function RoutesPage() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('name', routeName || file.name);
-    formData.append('authorization', `Bearer ${token}`);
 
     setUploading(true);
     try {
       const res = await axios.post(`${API}/routes/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
       });
       toast.success(t('success'));
       setRouteName('');
