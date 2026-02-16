@@ -89,6 +89,18 @@ export const Navbar = () => {
               <Globe className="w-4 h-4" />
               <span className="ml-1 text-xs font-mono uppercase">{lang}</span>
             </Button>
+            {user && (
+              <Link to="/notifications" data-testid="nav-notifications">
+                <Button variant="ghost" size="icon" className="relative text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100">
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            )}
             <Button
               variant="ghost"
               size="icon"
