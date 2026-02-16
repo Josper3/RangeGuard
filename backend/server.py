@@ -300,8 +300,7 @@ async def update_zone(zone_id: str, data: ZoneUpdate, user = Depends(get_current
     return updated
 
 @api_router.delete("/zones/{zone_id}")
-async def delete_zone(zone_id: str, authorization: str = ""):
-    user = await get_current_user(authorization)
+async def delete_zone(zone_id: str, user = Depends(get_current_user)):
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only admins can delete zones")
     
