@@ -326,7 +326,7 @@ async def upload_route(
     name: str = Form(""),
     authorization: str = Form("")
 ):
-    user = await get_optional_user(authorization)
+    user = await get_optional_user(authorization if authorization.startswith("Bearer") else None)
     
     content = await file.read()
     content_str = content.decode('utf-8')
