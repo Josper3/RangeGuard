@@ -38,6 +38,9 @@ function AppContent() {
             <Route path="/admin" element={
               <ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>
             } />
+            <Route path="/notifications" element={
+              <ProtectedRoute><NotificationsPage /></ProtectedRoute>
+            } />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
