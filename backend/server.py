@@ -267,6 +267,11 @@ async def get_zones(
     zones = await db.zones.find(query, {"_id": 0}).to_list(1000)
     return zones
 
+@api_router.get("/zones/my/list")
+async def get_my_zones(user = Depends(get_current_user)):
+    zones = await db.zones.find({"created_by": user["id"]}, {"_id": 0}).to_list(1000)
+    return zones
+
 @api_router.get("/zones/{zone_id}")
 async def get_zone(zone_id: str):
     zone = await db.zones.find_one({"id": zone_id}, {"_id": 0})
