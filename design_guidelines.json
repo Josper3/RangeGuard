@@ -1,0 +1,165 @@
+{
+  "brand": {
+    "name": "RangeGuard",
+    "description": "Collaborative safety platform for hikers and hunters.",
+    "emotional_tone": "Trust, Precision, Nature, Coexistence",
+    "archetype": "The Ranger (Guardian + Guide)"
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Manrope, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-bold tracking-tight",
+      "h2": "text-3xl md:text-4xl font-semibold tracking-tight",
+      "h3": "text-2xl font-semibold",
+      "h4": "text-xl font-medium uppercase tracking-wide",
+      "body_lg": "text-lg leading-relaxed",
+      "body_base": "text-base leading-relaxed",
+      "caption": "text-sm font-medium tracking-wide uppercase text-muted-foreground",
+      "mono_sm": "text-xs font-mono text-muted-foreground"
+    },
+    "weights": {
+      "default": "font-normal",
+      "emphasis": "font-semibold",
+      "strong": "font-bold"
+    }
+  },
+  "colors": {
+    "light_mode_default": true,
+    "palette": {
+      "primary": {
+        "name": "Forest Safety",
+        "main": "#166534",
+        "light": "#4ADE80",
+        "dark": "#14532D",
+        "foreground": "#FFFFFF"
+      },
+      "secondary": {
+        "name": "Stone & Earth",
+        "main": "#57534E",
+        "light": "#A8A29E",
+        "dark": "#292524",
+        "foreground": "#FFFFFF"
+      },
+      "background": {
+        "light": "#F5F5F4",
+        "dark": "#0C0A09",
+        "paper_light": "#FFFFFF",
+        "paper_dark": "#1C1917"
+      },
+      "status": {
+        "danger": "#EF4444",
+        "danger_bg": "#FEF2F2",
+        "warning": "#F97316",
+        "warning_bg": "#FFF7ED",
+        "success": "#10B981",
+        "success_bg": "#ECFDF5",
+        "info": "#3B82F6",
+        "info_bg": "#EFF6FF"
+      }
+    },
+    "gradients": {
+      "hero_light": "linear-gradient(to bottom, #F5F5F4 0%, #E7E5E4 100%)",
+      "hero_dark": "linear-gradient(to bottom, #0C0A09 0%, #1C1917 100%)",
+      "danger_zone": "repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.1) 10px, rgba(239, 68, 68, 0.2) 10px, rgba(239, 68, 68, 0.2) 20px)"
+    }
+  },
+  "layout_strategies": {
+    "containers": {
+      "default": "container mx-auto px-4 md:px-8 max-w-7xl",
+      "narrow": "container mx-auto px-4 max-w-4xl",
+      "fluid": "w-full px-4 md:px-8"
+    },
+    "spacing": {
+      "section_gap": "py-24 md:py-32",
+      "element_gap": "gap-6 md:gap-8",
+      "card_padding": "p-6 md:p-8"
+    },
+    "grid_systems": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-12 gap-6",
+      "features": "grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 rounded-md shadow-sm font-medium px-6 py-2.5 transition-all active:scale-[0.98]",
+      "destructive": "bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md shadow-sm font-medium px-6 py-2.5",
+      "outline": "border-2 border-primary/20 bg-transparent hover:bg-primary/5 text-primary rounded-md font-medium px-6 py-2.5",
+      "ghost": "hover:bg-accent hover:text-accent-foreground rounded-md px-4 py-2"
+    },
+    "cards": {
+      "default": "bg-card text-card-foreground rounded-xl border shadow-sm hover:shadow-md transition-shadow duration-200",
+      "interactive": "bg-card text-card-foreground rounded-xl border border-transparent hover:border-primary/20 shadow-sm hover:shadow-lg transition-all cursor-pointer group",
+      "alert": "border-l-4 rounded-r-md p-4 shadow-sm"
+    },
+    "inputs": {
+      "default": "flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    },
+    "maps": {
+      "container_style": "z-0 w-full h-full rounded-xl overflow-hidden shadow-inner border border-border/50",
+      "popup_style": "text-sm font-sans"
+    },
+    "badges": {
+      "default": "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+      "outline": "text-foreground"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "soft": "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
+      "float": "0 10px 40px -10px rgba(0, 0, 0, 0.1)"
+    },
+    "borders": {
+      "subtle": "border border-stone-200 dark:border-stone-800",
+      "active": "border-l-4 border-l-primary"
+    },
+    "textures": {
+      "noise": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")"
+    }
+  },
+  "accessibility": {
+    "contrast_check": "Ensure 4.5:1 contrast ratio for normal text. Use APCA for critical alerts.",
+    "focus_states": "Visible focus rings on all interactive elements. focus:ring-2 focus:ring-primary focus:ring-offset-2",
+    "motion": "Respect prefers-reduced-motion. Essential transitions only."
+  },
+  "images": {
+    "logo": "Placeholder: Bold, Sans-serif text 'RangeGuard' with a small mountain/shield icon.",
+    "hero_bg": "https://images.unsplash.com/photo-1758272959184-da2b0db64219?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwxfHxoaWtlciUyMG1vdW50YWluJTIwdHJhaWwlMjBtYXB8ZW58MHx8fHwxNzcxMjM5NDMzfDA&ixlib=rb-4.1.0&q=85",
+    "about_img": "https://images.unsplash.com/photo-1641447294618-a7e0bf0991df?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHw0fHxoaWtlciUyMG1vdW50YWluJTIwdHJhaWwlMjBtYXB8ZW58MHx8fHwxNzcxMjM5NDMzfDA&ixlib=rb-4.1.0&q=85"
+  },
+  "instructions_to_main_agent": [
+    "Use 'lucide-react' for all icons.",
+    "Use 'react-leaflet' for map integration. Ensure 'leaflet.css' is imported.",
+    "Implement the 'Safety Alert' system using the designated 'danger' and 'warning' colors.",
+    "The Dashboard must follow the 'Bento' grid layout: Map takes 2/3 width, Sidebar takes 1/3.",
+    "Forms for Zone creation must be clear, with validation states visible.",
+    "For the Landing Page, use a large Hero section with the map background (hero_bg) and a clear CTA.",
+    "Ensure the 'Dark Mode' toggle works correctly using Tailwind's 'dark' class strategy.",
+    "ALL interactive elements MUST have a 'data-testid' attribute (kebab-case).",
+    "Do NOT use standard HTML alerts; build custom Alert components with Shadcn patterns.",
+    "Use 'sonner' for toast notifications."
+  ],
+  "universal_guidelines": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯📚🎭🎬🎪🎉🎊🎁🎀🎂🍰🎈🎨🎰💰💵💳🏦💎🪙💸🤑📊📈📉💹🔢🏆🥇 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Examine existing components to understand the project's component patterns before creating new ones",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use 'sonner' for toasts"
+  ]
+}
