@@ -318,11 +318,6 @@ async def delete_zone(zone_id: str, user = Depends(get_current_user)):
     await db.zones.delete_one({"id": zone_id})
     return {"message": "Zone deleted"}
 
-@api_router.get("/zones/my/list")
-async def get_my_zones(user = Depends(get_current_user)):
-    zones = await db.zones.find({"created_by": user["id"]}, {"_id": 0}).to_list(1000)
-    return zones
-
 # ==================== ROUTE ROUTES ====================
 
 @api_router.post("/routes/upload")
