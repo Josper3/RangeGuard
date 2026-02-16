@@ -376,6 +376,12 @@ async def upload_route(
     }
     await db.routes.insert_one(route_doc)
     route_doc.pop("_id", None)
+    
+    # Check this route against all active zones and notify user
+    if user and user_id != "anonymous":
+        import asyncio
+        asyncio.create_task(check_uploaded_route_against_zones(route_doc, user_id))
+    
     return route_doc
 
 @api_router.get("/routes")
