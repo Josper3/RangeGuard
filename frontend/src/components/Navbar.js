@@ -10,8 +10,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
-import { Shield, Menu, X, Sun, Moon, Globe, Map, Route, LayoutDashboard, User, LogOut } from 'lucide-react';
-import { useState } from 'react';
+import { Shield, Menu, X, Sun, Moon, Globe, Map, Route, LayoutDashboard, User, LogOut, Bell } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const Navbar = () => {
   const { user, logout, isAdmin } = useAuth();
