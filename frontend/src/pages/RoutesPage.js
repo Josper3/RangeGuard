@@ -20,7 +20,7 @@ import {
 import { toast } from 'sonner';
 import {
   Upload, Trash2, Route, CheckCircle, AlertTriangle, Download,
-  FileText, Clock, Shield, Loader2, Calendar, MapPin, Eye
+  FileText, Clock, Shield, Loader2, Calendar, MapPin, Eye, AlertOctagon
 } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, Polygon, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
