@@ -201,8 +201,7 @@ async def login(data: UserLogin):
     }
 
 @api_router.get("/auth/me")
-async def get_me(authorization: str = ""):
-    user = await get_current_user(authorization)
+async def get_me(user = Depends(get_current_user)):
     return {
         "id": user["id"],
         "email": user["email"],
