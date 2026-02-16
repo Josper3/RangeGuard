@@ -20,7 +20,7 @@ import {
 import { toast } from 'sonner';
 import {
   Upload, Trash2, Route, CheckCircle, AlertTriangle, Download,
-  FileText, Clock, Shield, XCircle, Loader2, Calendar
+  FileText, Clock, Shield, Loader2, Calendar, MapPin, Eye
 } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, Polygon, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -29,21 +29,29 @@ import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const FitRoute = ({ geometry }) => {
+const FitBoundsToAll = ({ routeGeometry, zones }) => {
   const map = useMap();
   useEffect(() => {
-    if (geometry?.coordinates?.length > 0) {
-      const bounds = geometry.coordinates.map(c => [c[1], c[0]]);
-      map.fitBounds(bounds, { padding: [30, 30] });
+    const allCoords = [];
+    if (routeGeometry?.coordinates?.length > 0) {
+      routeGeometry.coordinates.forEach(c => allCoords.push([c[1], c[0]]));
     }
-  }, [geometry, map]);
+    zones.forEach(z => {
+      const coords = z.geometry?.coordinates?.[0] || [];
+      coords.forEach(c => allCoords.push([c[1], c[0]]));
+    });
+    if (allCoords.length > 0) {
+      map.fitBounds(allCoords, { padding: [40, 40] });
+    }
+  }, [routeGeometry, zones, map]);
   return null;
 };
 
 export default function RoutesPage() {
   const { t } = useLanguage();
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const [routes, setRoutes] = useState([]);
+  const [activeZones, setActiveZones] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
@@ -51,6 +59,7 @@ export default function RoutesPage() {
   const [checkTime, setCheckTime] = useState('');
   const [routeName, setRouteName] = useState('');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [showZones, setShowZones] = useState(true);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -61,36 +70,52 @@ export default function RoutesPage() {
     } catch (err) {
       console.error(err);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  const fetchActiveZones = useCallback(async () => {
+    try {
+      const params = { active: true };
+      if (checkTime) {
+        params.date = new Date(checkTime).toISOString();
+        delete params.active;
+      }
+      const res = await axios.get(`${API}/zones`, { params });
+      setActiveZones(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [checkTime]);
 
   useEffect(() => {
     if (token) fetchRoutes();
   }, [fetchRoutes, token]);
 
+  useEffect(() => {
+    fetchActiveZones();
+  }, [fetchActiveZones]);
+
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const formData = new FormData();
     formData.append('file', file);
     formData.append('name', routeName || file.name);
-
     setUploading(true);
     try {
       const res = await axios.post(`${API}/routes/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${token}` }
       });
       toast.success(t('success'));
       setRouteName('');
       fetchRoutes();
       setSelectedRoute(res.data);
+      setCheckResult(null);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Error uploading file');
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -119,13 +144,11 @@ export default function RoutesPage() {
         route_id: route.id,
         check_time: checkTime ? new Date(checkTime).toISOString() : undefined
       };
-      const res = await axios.post(`${API}/reports/pdf`, payload, {
-        responseType: 'blob'
-      });
+      const res = await axios.post(`${API}/reports/pdf`, payload, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `rangeguard_report.pdf`);
+      link.setAttribute('download', 'rangeguard_report.pdf');
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -152,14 +175,115 @@ export default function RoutesPage() {
     }
   };
 
+  // Determine which zone IDs are intersecting
+  const intersectingIds = new Set((checkResult?.zones || []).map(z => z.zone_id));
+
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-        <h1 className="text-2xl font-bold font-[Manrope] text-stone-800 dark:text-stone-100 flex items-center gap-2 mb-2">
-          <Route className="w-6 h-6 text-blue-600" />
-          {t('routes_title')}
-        </h1>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-2xl font-bold font-[Manrope] text-stone-800 dark:text-stone-100 flex items-center gap-2">
+            <Route className="w-6 h-6 text-blue-600" />
+            {t('routes_title')}
+          </h1>
+          <Button
+            variant={showZones ? "default" : "outline"}
+            size="sm"
+            data-testid="toggle-zones-btn"
+            onClick={() => setShowZones(!showZones)}
+            className={showZones ? "bg-red-600 hover:bg-red-700 text-white gap-2" : "gap-2"}
+          >
+            <Eye className="w-4 h-4" />
+            {t('map_hunting_zone')} ({activeZones.length})
+          </Button>
+        </div>
         <p className="text-sm text-stone-500 dark:text-stone-400 mb-8">{t('routes_upload_hint')}</p>
+
+        {/* Intersection Alert Banner - always visible when result exists */}
+        {checkResult && (
+          <div
+            className={`mb-6 rounded-xl border-2 p-5 animate-fadeIn ${
+              checkResult.intersects
+                ? 'border-red-400 bg-red-50 dark:bg-red-950/30 dark:border-red-700'
+                : 'border-green-400 bg-green-50 dark:bg-green-950/30 dark:border-green-700'
+            }`}
+            data-testid="intersection-result"
+          >
+            <div className="flex items-start gap-4">
+              <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${
+                checkResult.intersects
+                  ? 'bg-red-100 dark:bg-red-900/40'
+                  : 'bg-green-100 dark:bg-green-900/40'
+              }`}>
+                {checkResult.intersects ? (
+                  <AlertTriangle className="w-7 h-7 text-red-600 dark:text-red-400" />
+                ) : (
+                  <CheckCircle className="w-7 h-7 text-green-600 dark:text-green-400" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className={`text-xl font-bold font-[Manrope] ${
+                  checkResult.intersects ? 'text-red-800 dark:text-red-300' : 'text-green-800 dark:text-green-300'
+                }`}>
+                  {checkResult.intersects ? t('result_danger') : t('result_safe')}
+                </h3>
+                <p className="text-sm mt-1 text-stone-600 dark:text-stone-400">
+                  {checkResult.intersects ? t('result_danger_desc') : t('result_safe_desc')}
+                </p>
+
+                {checkResult.zones?.length > 0 && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {checkResult.zones.map((zone, i) => (
+                      <div
+                        key={i}
+                        className="p-3 rounded-lg bg-white dark:bg-stone-900 border border-red-200 dark:border-red-800 shadow-sm"
+                        data-testid={`result-zone-${i}`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-sm text-stone-800 dark:text-stone-100 flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-red-500" />
+                            {zone.zone_name}
+                          </span>
+                          <Badge variant="destructive" className="text-xs">{zone.overlap_percentage}%</Badge>
+                        </div>
+                        <div className="text-xs text-stone-500 dark:text-stone-400 space-y-0.5">
+                          <div>{t('result_association')}: {zone.association}</div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(zone.start_time).toLocaleString()} - {new Date(zone.end_time).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-4 flex gap-3">
+                  <Button
+                    data-testid="download-pdf-btn"
+                    onClick={() => selectedRoute && handleDownloadPdf(selectedRoute)}
+                    disabled={downloadingPdf}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    {downloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    {t('result_download_pdf')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    data-testid="clear-result-btn"
+                    onClick={() => setCheckResult(null)}
+                    className="text-stone-500"
+                  >
+                    {t('close')}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left: Upload and list */}
@@ -263,12 +387,13 @@ export default function RoutesPage() {
                             data-testid={`check-route-${route.id}`}
                             onClick={(e) => { e.stopPropagation(); handleCheck(route); }}
                             disabled={checking}
-                            className="h-7 px-2 text-green-700 hover:text-green-800 hover:bg-green-50"
+                            className="h-7 px-2 text-green-700 hover:text-green-800 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
+                            title={t('routes_check')}
                           >
                             {checking && selectedRoute?.id === route.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : (
-                              <Shield className="w-3 h-3" />
+                              <Shield className="w-3.5 h-3.5" />
                             )}
                           </Button>
                           <AlertDialog>
@@ -280,7 +405,7 @@ export default function RoutesPage() {
                                 className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50"
                                 onClick={e => e.stopPropagation()}
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
@@ -303,101 +428,143 @@ export default function RoutesPage() {
             </Card>
           </div>
 
-          {/* Right: Map and Results */}
+          {/* Right: Map */}
           <div className="lg:col-span-8 space-y-4">
-            {/* Map */}
-            <div className="rounded-xl overflow-hidden shadow-inner border border-stone-200 dark:border-stone-700 h-[400px] md:h-[450px]" data-testid="route-map">
+            <div className="rounded-xl overflow-hidden shadow-inner border border-stone-200 dark:border-stone-700 h-[500px] md:h-[560px]" data-testid="route-map">
               <MapContainer
                 center={[40.4168, -3.7038]}
                 zoom={6}
                 style={{ height: '100%', width: '100%' }}
               >
                 <TileLayer
-                  attribution='&copy; OpenStreetMap'
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+                <FitBoundsToAll
+                  routeGeometry={selectedRoute?.geometry}
+                  zones={showZones ? activeZones : []}
+                />
+
+                {/* Active hunting zones */}
+                {showZones && activeZones.map(zone => {
+                  const isIntersecting = intersectingIds.has(zone.id);
+                  const coords = zone.geometry?.coordinates?.[0]?.map(c => [c[1], c[0]]) || [];
+                  const bufferCoords = zone.buffered_geometry?.coordinates?.[0]?.map(c => [c[1], c[0]]) || [];
+
+                  if (coords.length === 0) return null;
+                  return (
+                    <div key={zone.id}>
+                      {bufferCoords.length > 0 && (
+                        <Polygon
+                          positions={bufferCoords}
+                          pathOptions={{
+                            color: '#F59E0B',
+                            fillColor: '#FBBF24',
+                            fillOpacity: 0.08,
+                            weight: 1,
+                            dashArray: '6 4'
+                          }}
+                        />
+                      )}
+                      <Polygon
+                        positions={coords}
+                        pathOptions={{
+                          color: isIntersecting ? '#DC2626' : '#EF4444',
+                          fillColor: isIntersecting ? '#DC2626' : '#EF4444',
+                          fillOpacity: isIntersecting ? 0.35 : 0.18,
+                          weight: isIntersecting ? 3 : 2
+                        }}
+                      >
+                        <Popup>
+                          <div className="text-sm space-y-1 min-w-[180px]">
+                            <div className="font-bold">{zone.name}</div>
+                            {zone.description && <p className="text-gray-600 text-xs">{zone.description}</p>}
+                            <div className="text-xs text-gray-500">
+                              {zone.association_name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(zone.start_time).toLocaleString()} - {new Date(zone.end_time).toLocaleString()}
+                            </div>
+                            {isIntersecting && (
+                              <div className="text-xs font-bold text-red-600 mt-1 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" /> Intersects with your route!
+                              </div>
+                            )}
+                          </div>
+                        </Popup>
+                      </Polygon>
+                    </div>
+                  );
+                })}
+
+                {/* Intersecting zones from result (with geometry) shown highlighted */}
+                {checkResult?.zones?.map((zone, i) => {
+                  const coords = zone.geometry?.coordinates?.[0]?.map(c => [c[1], c[0]]) || [];
+                  const bufferCoords = zone.buffered_geometry?.coordinates?.[0]?.map(c => [c[1], c[0]]) || [];
+                  if (coords.length === 0) return null;
+                  return (
+                    <div key={`intersect-${i}`}>
+                      {bufferCoords.length > 0 && (
+                        <Polygon
+                          positions={bufferCoords}
+                          pathOptions={{
+                            color: '#DC2626',
+                            fillColor: '#DC2626',
+                            fillOpacity: 0.1,
+                            weight: 1,
+                            dashArray: '4 4'
+                          }}
+                        />
+                      )}
+                      <Polygon
+                        positions={coords}
+                        pathOptions={{
+                          color: '#DC2626',
+                          fillColor: '#DC2626',
+                          fillOpacity: 0.4,
+                          weight: 3
+                        }}
+                      >
+                        <Popup>
+                          <div className="text-sm min-w-[160px]">
+                            <div className="font-bold text-red-600">{zone.zone_name}</div>
+                            <div className="text-xs text-gray-500">{zone.association}</div>
+                            <div className="text-xs font-semibold text-red-600 mt-1">
+                              {zone.overlap_percentage}% overlap
+                            </div>
+                          </div>
+                        </Popup>
+                      </Polygon>
+                    </div>
+                  );
+                })}
+
+                {/* Selected route */}
                 {selectedRoute?.geometry && (
-                  <>
-                    <FitRoute geometry={selectedRoute.geometry} />
-                    <Polyline
-                      positions={selectedRoute.geometry.coordinates.map(c => [c[1], c[0]])}
-                      pathOptions={{ color: '#3B82F6', weight: 4 }}
-                    />
-                  </>
+                  <Polyline
+                    positions={selectedRoute.geometry.coordinates.map(c => [c[1], c[0]])}
+                    pathOptions={{ color: '#3B82F6', weight: 4, opacity: 0.9 }}
+                  >
+                    <Popup>
+                      <div className="text-sm font-semibold">{selectedRoute.name}</div>
+                    </Popup>
+                  </Polyline>
                 )}
-                {checkResult?.zones?.map((zone, i) => (
-                  <Polygon
-                    key={i}
-                    positions={[]}
-                    pathOptions={{ color: '#EF4444', fillOpacity: 0.2 }}
-                  />
-                ))}
               </MapContainer>
             </div>
 
-            {/* Intersection Results */}
-            {checkResult && (
-              <Card
-                className={`border-2 ${checkResult.intersects
-                  ? 'border-red-400 bg-red-50 dark:bg-red-900/10 dark:border-red-800'
-                  : 'border-green-400 bg-green-50 dark:bg-green-900/10 dark:border-green-800'
-                }`}
-                data-testid="intersection-result"
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                      checkResult.intersects ? 'bg-red-100 dark:bg-red-900/30' : 'bg-green-100 dark:bg-green-900/30'
-                    }`}>
-                      {checkResult.intersects ? (
-                        <AlertTriangle className="w-6 h-6 text-red-600" />
-                      ) : (
-                        <CheckCircle className="w-6 h-6 text-green-600" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className={`text-lg font-bold font-[Manrope] ${
-                        checkResult.intersects ? 'text-red-800 dark:text-red-300' : 'text-green-800 dark:text-green-300'
-                      }`}>
-                        {checkResult.intersects ? t('result_danger') : t('result_safe')}
-                      </h3>
-                      <p className="text-sm mt-1 text-stone-600 dark:text-stone-400">
-                        {checkResult.intersects ? t('result_danger_desc') : t('result_safe_desc')}
-                      </p>
-
-                      {checkResult.zones?.length > 0 && (
-                        <div className="mt-4 space-y-3">
-                          {checkResult.zones.map((zone, i) => (
-                            <div key={i} className="p-3 rounded-lg bg-white dark:bg-stone-900 border border-red-200 dark:border-red-800" data-testid={`result-zone-${i}`}>
-                              <div className="flex items-center justify-between">
-                                <span className="font-semibold text-sm text-stone-800 dark:text-stone-100">{zone.zone_name}</span>
-                                <Badge variant="destructive">{zone.overlap_percentage}% overlap</Badge>
-                              </div>
-                              <div className="text-xs text-stone-500 mt-1 space-y-0.5">
-                                <div>{t('result_association')}: {zone.association}</div>
-                                <div>{t('result_period')}: {new Date(zone.start_time).toLocaleString()} - {new Date(zone.end_time).toLocaleString()}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="mt-4 flex gap-3">
-                        <Button
-                          data-testid="download-pdf-btn"
-                          onClick={() => selectedRoute && handleDownloadPdf(selectedRoute)}
-                          disabled={downloadingPdf}
-                          variant="outline"
-                          className="gap-2"
-                        >
-                          {downloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                          {t('result_download_pdf')}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Zone count indicator below map */}
+            {showZones && activeZones.length > 0 && (
+              <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400" data-testid="zone-count-indicator">
+                <div className="w-3 h-3 rounded bg-red-500/30 border border-red-500" />
+                {activeZones.length} {t('map_active_zones').toLowerCase()}
+                {selectedRoute && (
+                  <span className="ml-2 flex items-center gap-1">
+                    <div className="w-4 h-0.5 bg-blue-500 rounded" />
+                    {selectedRoute.name}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>
