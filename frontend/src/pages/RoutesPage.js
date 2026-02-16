@@ -203,29 +203,39 @@ export default function RoutesPage() {
         {checkResult && (
           <div
             className={`mb-6 rounded-xl border-2 p-5 animate-fadeIn ${
-              checkResult.intersects
-                ? 'border-red-400 bg-red-50 dark:bg-red-950/30 dark:border-red-700'
+              checkResult.zones?.some(z => z.conflict_type === 'contained')
+                ? 'border-red-500 bg-red-50 dark:bg-red-950/30 dark:border-red-600'
+                : checkResult.intersects
+                ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-600'
                 : 'border-green-400 bg-green-50 dark:bg-green-950/30 dark:border-green-700'
             }`}
             data-testid="intersection-result"
           >
             <div className="flex items-start gap-4">
               <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${
-                checkResult.intersects
+                checkResult.zones?.some(z => z.conflict_type === 'contained')
                   ? 'bg-red-100 dark:bg-red-900/40'
+                  : checkResult.intersects
+                  ? 'bg-orange-100 dark:bg-orange-900/40'
                   : 'bg-green-100 dark:bg-green-900/40'
               }`}>
-                {checkResult.intersects ? (
-                  <AlertTriangle className="w-7 h-7 text-red-600 dark:text-red-400" />
+                {checkResult.zones?.some(z => z.conflict_type === 'contained') ? (
+                  <AlertOctagon className="w-7 h-7 text-red-600 dark:text-red-400" />
+                ) : checkResult.intersects ? (
+                  <AlertTriangle className="w-7 h-7 text-orange-600 dark:text-orange-400" />
                 ) : (
                   <CheckCircle className="w-7 h-7 text-green-600 dark:text-green-400" />
                 )}
               </div>
               <div className="flex-1">
                 <h3 className={`text-xl font-bold font-[Manrope] ${
-                  checkResult.intersects ? 'text-red-800 dark:text-red-300' : 'text-green-800 dark:text-green-300'
+                  checkResult.zones?.some(z => z.conflict_type === 'contained')
+                    ? 'text-red-800 dark:text-red-300'
+                    : checkResult.intersects
+                    ? 'text-orange-800 dark:text-orange-300'
+                    : 'text-green-800 dark:text-green-300'
                 }`}>
-                  {checkResult.intersects ? t('result_danger') : t('result_safe')}
+                  {checkResult.safe_message || (checkResult.intersects ? t('result_danger') : t('result_safe'))}
                 </h3>
                 <p className="text-sm mt-1 text-stone-600 dark:text-stone-400">
                   {checkResult.intersects ? t('result_danger_desc') : t('result_safe_desc')}
@@ -236,15 +246,31 @@ export default function RoutesPage() {
                     {checkResult.zones.map((zone, i) => (
                       <div
                         key={i}
-                        className="p-3 rounded-lg bg-white dark:bg-stone-900 border border-red-200 dark:border-red-800 shadow-sm"
+                        className={`p-3 rounded-lg bg-white dark:bg-stone-900 border shadow-sm ${
+                          zone.conflict_type === 'contained'
+                            ? 'border-red-300 dark:border-red-700'
+                            : 'border-orange-200 dark:border-orange-800'
+                        }`}
                         data-testid={`result-zone-${i}`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-semibold text-sm text-stone-800 dark:text-stone-100 flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-red-500" />
+                            {zone.conflict_type === 'contained' ? (
+                              <AlertOctagon className="w-3.5 h-3.5 text-red-600" />
+                            ) : (
+                              <MapPin className="w-3.5 h-3.5 text-orange-500" />
+                            )}
                             {zone.zone_name}
                           </span>
-                          <Badge variant="destructive" className="text-xs">{zone.overlap_percentage}%</Badge>
+                          <div className="flex items-center gap-1.5">
+                            <Badge
+                              variant={zone.conflict_type === 'contained' ? "destructive" : "outline"}
+                              className="text-[10px]"
+                            >
+                              {zone.conflict_type === 'contained' ? 'INSIDE' : zone.conflict_type === 'buffer' ? 'BUFFER' : 'CROSSES'}
+                            </Badge>
+                            <Badge variant="destructive" className="text-xs">{zone.overlap_percentage}%</Badge>
+                          </div>
                         </div>
                         <div className="text-xs text-stone-500 dark:text-stone-400 space-y-0.5">
                           <div>{t('result_association')}: {zone.association}</div>
