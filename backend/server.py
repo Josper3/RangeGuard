@@ -390,6 +390,55 @@ async def delete_route(route_id: str, user = Depends(get_current_user)):
 
 # ==================== INTERSECTION CHECK ====================
 
+def check_route_against_zones(route_shape, active_zones):
+    """Check a route against active zones. Returns list of conflicts."""
+    conflicts = []
+    for zone in active_zones:
+        try:
+            # Check against both original and buffered geometry
+            zone_geom = zone.get("buffered_geometry", zone["geometry"])
+            zone_shape = shape(zone_geom)
+            original_zone_shape = shape(zone["geometry"])
+            
+            # Check containment first (route fully inside zone)
+            is_contained = original_zone_shape.contains(route_shape) or zone_shape.contains(route_shape)
+            is_intersecting = route_shape.intersects(zone_shape)
+            is_within_buffer = (not original_zone_shape.intersects(route_shape)) and zone_shape.intersects(route_shape)
+            
+            if is_contained or is_intersecting:
+                if is_contained:
+                    overlap_pct = 100.0
+                    conflict_type = "contained"  # Route fully inside zone
+                elif is_within_buffer:
+                    intersection = route_shape.intersection(zone_shape)
+                    overlap_length = intersection.length if hasattr(intersection, 'length') else 0
+                    route_length = route_shape.length if route_shape.length > 0 else 1
+                    overlap_pct = min(round((overlap_length / route_length) * 100, 1), 100)
+                    conflict_type = "buffer"  # Route in buffer zone only
+                else:
+                    intersection = route_shape.intersection(zone_shape)
+                    overlap_length = intersection.length if hasattr(intersection, 'length') else 0
+                    route_length = route_shape.length if route_shape.length > 0 else 1
+                    overlap_pct = min(round((overlap_length / route_length) * 100, 1), 100)
+                    conflict_type = "intersects"
+                
+                conflicts.append({
+                    "zone_id": zone["id"],
+                    "zone_name": zone["name"],
+                    "association": zone.get("association_name", ""),
+                    "start_time": zone["start_time"],
+                    "end_time": zone["end_time"],
+                    "overlap_percentage": overlap_pct,
+                    "conflict_type": conflict_type,
+                    "buffer_meters": zone.get("buffer_meters", 200),
+                    "geometry": zone["geometry"],
+                    "buffered_geometry": zone.get("buffered_geometry")
+                })
+        except Exception as e:
+            logger.error(f"Intersection check error for zone {zone.get('id')}: {e}")
+            continue
+    return conflicts
+
 @api_router.post("/check-intersection")
 async def check_intersection(data: IntersectionRequest):
     check_time = data.check_time or datetime.now(timezone.utc).isoformat()
@@ -405,7 +454,7 @@ async def check_intersection(data: IntersectionRequest):
     if not route_geom_data:
         raise HTTPException(status_code=400, detail="No route geometry provided")
     
-    # Get active zones
+    # Get active zones at the given time
     active_zones = await db.zones.find({
         "start_time": {"$lte": check_time},
         "end_time": {"$gte": check_time}
@@ -423,39 +472,140 @@ async def check_intersection(data: IntersectionRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid route geometry: {str(e)}")
     
-    intersecting_zones = []
-    for zone in active_zones:
-        try:
-            # Check against buffered geometry
-            zone_geom = zone.get("buffered_geometry", zone["geometry"])
-            zone_shape = shape(zone_geom)
-            
-            if route_shape.intersects(zone_shape):
-                intersection = route_shape.intersection(zone_shape)
-                overlap_length = intersection.length if hasattr(intersection, 'length') else 0
-                route_length = route_shape.length if route_shape.length > 0 else 1
-                overlap_pct = min(round((overlap_length / route_length) * 100, 1), 100)
-                
-                intersecting_zones.append({
-                    "zone_id": zone["id"],
-                    "zone_name": zone["name"],
-                    "association": zone.get("association_name", ""),
-                    "start_time": zone["start_time"],
-                    "end_time": zone["end_time"],
-                    "overlap_percentage": overlap_pct,
-                    "buffer_meters": zone.get("buffer_meters", 200),
-                    "geometry": zone["geometry"],
-                    "buffered_geometry": zone.get("buffered_geometry")
-                })
-        except Exception as e:
-            logger.error(f"Intersection check error for zone {zone.get('id')}: {e}")
-            continue
+    conflicts = check_route_against_zones(route_shape, active_zones)
+    
+    has_contained = any(c["conflict_type"] == "contained" for c in conflicts)
+    has_intersect = any(c["conflict_type"] == "intersects" for c in conflicts)
+    
+    if has_contained:
+        msg = "CRITICAL: Your entire route is inside an active hunting zone!"
+    elif has_intersect:
+        msg = "WARNING: Your route crosses active hunting zones!"
+    elif conflicts:
+        msg = "CAUTION: Your route enters a buffer/safety zone near hunting areas."
+    else:
+        msg = "Safe: No conflicts with active hunting zones."
     
     return {
-        "intersects": len(intersecting_zones) > 0,
-        "zones": intersecting_zones,
-        "safe_message": "DANGER: Route intersects with active hunting zones!" if intersecting_zones else "Safe: No intersections with active hunting zones."
+        "intersects": len(conflicts) > 0,
+        "zones": conflicts,
+        "safe_message": msg
     }
+
+# ==================== NOTIFICATIONS ====================
+
+@api_router.get("/notifications")
+async def get_notifications(user = Depends(get_current_user)):
+    notifications = await db.notifications.find(
+        {"user_id": user["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return notifications
+
+@api_router.get("/notifications/unread-count")
+async def get_unread_count(user = Depends(get_current_user)):
+    count = await db.notifications.count_documents({"user_id": user["id"], "read": False})
+    return {"count": count}
+
+@api_router.put("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str, user = Depends(get_current_user)):
+    result = await db.notifications.update_one(
+        {"id": notification_id, "user_id": user["id"]},
+        {"$set": {"read": True}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"message": "Marked as read"}
+
+@api_router.put("/notifications/read-all")
+async def mark_all_read(user = Depends(get_current_user)):
+    await db.notifications.update_many(
+        {"user_id": user["id"], "read": False},
+        {"$set": {"read": True}}
+    )
+    return {"message": "All marked as read"}
+
+@api_router.delete("/notifications/{notification_id}")
+async def delete_notification(notification_id: str, user = Depends(get_current_user)):
+    await db.notifications.delete_one({"id": notification_id, "user_id": user["id"]})
+    return {"message": "Deleted"}
+
+async def create_notification(user_id: str, notif_type: str, title: str, message: str, data: dict = None):
+    """Create a notification for a user."""
+    notif_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "type": notif_type,  # "zone_conflict", "new_zone", "route_warning"
+        "title": title,
+        "message": message,
+        "data": data or {},
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notif_doc)
+    return notif_doc
+
+async def check_routes_against_new_zone(zone_doc):
+    """When a new zone is created, check all existing routes and notify affected users."""
+    try:
+        zone_shape = shape(zone_doc.get("buffered_geometry", zone_doc["geometry"]))
+        original_zone_shape = shape(zone_doc["geometry"])
+        
+        # Get all routes
+        all_routes = await db.routes.find({}, {"_id": 0}).to_list(5000)
+        
+        for route in all_routes:
+            if route["user_id"] == "anonymous":
+                continue
+            try:
+                route_shape = shape(route["geometry"])
+                is_contained = original_zone_shape.contains(route_shape) or zone_shape.contains(route_shape)
+                is_intersecting = route_shape.intersects(zone_shape)
+                
+                if is_contained or is_intersecting:
+                    if is_contained:
+                        conflict_type = "contained"
+                        title = f"CRITICAL: Route '{route['name']}' is inside new hunting zone"
+                        message = (
+                            f"Your route '{route['name']}' is completely inside the new hunting zone "
+                            f"'{zone_doc['name']}' ({zone_doc.get('association_name', '')}).\n"
+                            f"Active: {zone_doc['start_time'][:16]} - {zone_doc['end_time'][:16]}.\n"
+                            f"Please plan an alternative route for your safety."
+                        )
+                    else:
+                        conflict_type = "intersects"
+                        intersection = route_shape.intersection(zone_shape)
+                        overlap_length = intersection.length if hasattr(intersection, 'length') else 0
+                        route_length = route_shape.length if route_shape.length > 0 else 1
+                        overlap_pct = min(round((overlap_length / route_length) * 100, 1), 100)
+                        title = f"WARNING: Route '{route['name']}' crosses new hunting zone"
+                        message = (
+                            f"Your route '{route['name']}' intersects ({overlap_pct}%) with the new hunting zone "
+                            f"'{zone_doc['name']}' ({zone_doc.get('association_name', '')}).\n"
+                            f"Active: {zone_doc['start_time'][:16]} - {zone_doc['end_time'][:16]}.\n"
+                            f"Review your route before heading out."
+                        )
+                    
+                    await create_notification(
+                        user_id=route["user_id"],
+                        notif_type="zone_conflict",
+                        title=title,
+                        message=message,
+                        data={
+                            "route_id": route["id"],
+                            "route_name": route["name"],
+                            "zone_id": zone_doc["id"],
+                            "zone_name": zone_doc["name"],
+                            "conflict_type": conflict_type,
+                            "zone_start": zone_doc["start_time"],
+                            "zone_end": zone_doc["end_time"]
+                        }
+                    )
+            except Exception as e:
+                logger.error(f"Error checking route {route.get('id')} against new zone: {e}")
+                continue
+    except Exception as e:
+        logger.error(f"Error in check_routes_against_new_zone: {e}")
 
 # ==================== PDF REPORT ====================
 
