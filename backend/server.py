@@ -379,8 +379,7 @@ async def get_routes(user = Depends(get_current_user)):
     return routes
 
 @api_router.delete("/routes/{route_id}")
-async def delete_route(route_id: str, authorization: str = ""):
-    user = await get_current_user(authorization)
+async def delete_route(route_id: str, user = Depends(get_current_user)):
     route = await db.routes.find_one({"id": route_id}, {"_id": 0})
     if not route:
         raise HTTPException(status_code=404, detail="Route not found")
