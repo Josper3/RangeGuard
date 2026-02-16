@@ -37,6 +37,10 @@ Collaborative web app for hunting safety. Hunting associations mark temporary ac
 - Auth pages (login/register) with role selection
 - Admin zone management with polygon drawing tool (leaflet-draw)
 - Routes page with GPX upload, intersection checking, PDF download
+- **Routes map now shows active hunting zones** with buffer zones (red polygons)
+- **Visual intersection alert banner** (green=safe, red=danger) with zone details and overlap %
+- **Toggle button** to show/hide hunting zones on routes map
+- Intersection API returns full zone geometry for map rendering
 - Language toggle (ES/EN) working
 - Dark/light theme toggle working
 - Navbar with responsive mobile menu
