@@ -207,13 +207,13 @@ class RangeGuardAPITester:
         return success
 
     def test_intersection_check(self):
-        """Test POST /api/check-intersection"""
-        # Test route that intersects with the zone we created
+        """Test POST /api/check-intersection with geometry validation"""
+        # Test route that intersects with existing zones
         route_geometry = {
             "type": "LineString",
             "coordinates": [
-                [-3.7, 40.5],  # Start point inside the zone
-                [-3.5, 40.3]   # End point outside the zone
+                [-3.7, 40.5],  # Start point inside potential zone
+                [-3.5, 40.3]   # End point outside zone
             ]
         }
         
@@ -239,6 +239,17 @@ class RangeGuardAPITester:
             print(f"   Intersects: {response.get('intersects')}")
             print(f"   Zones found: {len(response.get('zones', []))}")
             print(f"   Message: {response.get('safe_message')}")
+            
+            # Validate zone data includes geometry and buffered_geometry
+            zones = response.get('zones', [])
+            for i, zone in enumerate(zones):
+                expected_zone_keys = ["zone_id", "zone_name", "association", "overlap_percentage", "geometry", "buffered_geometry"]
+                missing_zone_keys = [k for k in expected_zone_keys if k not in zone]
+                if missing_zone_keys:
+                    print(f"   Warning: Zone {i} missing keys: {missing_zone_keys}")
+                else:
+                    print(f"   Zone {i}: {zone.get('zone_name')} - {zone.get('overlap_percentage')}% overlap")
+                    print(f"   Zone {i}: Has geometry: {bool(zone.get('geometry'))}, Has buffered_geometry: {bool(zone.get('buffered_geometry'))}")
         
         return success
 
