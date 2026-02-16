@@ -298,6 +298,7 @@ class RangeGuardAPITester:
         self.test_create_zone()
         self.test_get_zones_active()
         self.test_intersection_check()
+        self.test_pdf_generation()
         self.test_user_registration()
 
         # Print results
