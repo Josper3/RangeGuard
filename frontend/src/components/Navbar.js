@@ -17,7 +17,7 @@ import axios from 'axios';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const Navbar = () => {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, token, logout, isAdmin } = useAuth();
   const { t, lang, switchLang } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
