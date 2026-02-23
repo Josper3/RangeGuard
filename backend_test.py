@@ -225,45 +225,75 @@ class HuntingSafetyAPITester:
         return success
 
     def run_all_tests(self):
-        """Run all backend tests"""
+        """Run all backend tests for explore routes functionality"""
         print("="*60)
-        print("🚀 Starting RangeGuard Backend API Tests")
+        print("🚀 Starting Hunting Safety Web App - Explore Routes Feature Tests")
         print(f"📍 Base URL: {self.base_url}")
         print("="*60)
 
-        # Test basic endpoints that don't require auth
-        self.test_stats_endpoint()
-        
-        # Test authentication flow
-        self.test_admin_registration()
-        
-        # Try login (in case admin already exists)
-        if not self.token:
-            self.test_login()
-        
-        if not self.token:
-            print("❌ Cannot proceed without authentication token")
+        # Test 1: Login as hiker user (from context)
+        print("\n📋 AUTHENTICATION TESTS")
+        login_success = self.test_login_hiker()
+        if not login_success:
+            print("❌ Cannot proceed without authentication")
             return False
+
+        # Test 2: Public Routes API - GET /api/routes/public
+        print("\n📋 PUBLIC ROUTES API TESTS")
+        public_routes_success = self.test_public_routes()
+        public_routes_search_success = self.test_public_routes_search()
+
+        # Get some routes for favorites testing
+        print("\n📋 GETTING ROUTE DATA FOR FAVORITES TESTS")
+        success, public_routes = self.run_test("Get Routes for Testing", "GET", "routes/public", 200)
         
-        # Test authenticated endpoints
-        self.test_get_me()
-        self.test_create_zone()
-        self.test_get_zones_active()
-        self.test_intersection_check()
-        self.test_pdf_generation()
-        self.test_user_registration()
+        if not success or not public_routes:
+            print("❌ No public routes available for favorites testing")
+            return False
+
+        # Test 3: Favorites API - All endpoints
+        print("\n📋 FAVORITES API TESTS")
+        test_route_id = public_routes[0]['id']
+        print(f"   Using test route ID: {test_route_id}")
+
+        # Get initial favorites state
+        initial_fav_ids_success = self.test_get_favorite_ids()
+        initial_favs_success = self.test_get_favorites()
+
+        # Add to favorites
+        add_fav_success = self.test_add_favorite(test_route_id)
+
+        # Verify it was added
+        if add_fav_success:
+            after_add_ids_success = self.test_get_favorite_ids()
+            after_add_favs_success = self.test_get_favorites()
+
+        # Remove from favorites
+        remove_fav_success = self.test_remove_favorite(test_route_id)
+
+        # Verify it was removed
+        if remove_fav_success:
+            after_remove_ids_success = self.test_get_favorite_ids()
+            after_remove_favs_success = self.test_get_favorites()
 
         # Print results
         print("\n" + "="*60)
-        print("📊 TEST RESULTS")
+        print("📊 TEST RESULTS - EXPLORE ROUTES FEATURE")
         print("="*60)
         print(f"Tests run: {self.tests_run}")
         print(f"Tests passed: {self.tests_passed}")
         print(f"Tests failed: {self.tests_run - self.tests_passed}")
-        print(f"Success rate: {(self.tests_passed / self.tests_run * 100):.1f}%")
+        
+        if self.failed_tests:
+            print(f"\n❌ Failed tests ({len(self.failed_tests)}):")
+            for failed in self.failed_tests:
+                print(f"   - {failed}")
+        
+        success_rate = (self.tests_passed / self.tests_run * 100) if self.tests_run > 0 else 0
+        print(f"Success rate: {success_rate:.1f}%")
         print("="*60)
 
-        return self.tests_passed == self.tests_run
+        return len(self.failed_tests) == 0
 
 def main():
     tester = RangeGuardAPITester()
