@@ -372,6 +372,8 @@ async def upload_route(
         "geometry": geometry,
         "user_id": user_id,
         "file_name": file.filename,
+        "is_public": True,
+        "owner_name": user["name"] if user else "Anonymous",
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.routes.insert_one(route_doc)
