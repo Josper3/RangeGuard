@@ -33,6 +33,7 @@ function AppContent() {
             <Route path="/login" element={<AuthPage mode="login" />} />
             <Route path="/register" element={<AuthPage mode="register" />} />
             <Route path="/map" element={<MapPage />} />
+            <Route path="/explore" element={<ExplorePage />} />
             <Route path="/routes" element={
               <ProtectedRoute><RoutesPage /></ProtectedRoute>
             } />
