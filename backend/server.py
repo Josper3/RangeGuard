@@ -665,17 +665,14 @@ async def create_notification(user_id: str, notif_type: str, title: str, message
     return notif_doc
 
 async def check_routes_against_new_zone(zone_doc):
-    """When a new zone is created, check all existing routes and notify affected users."""
+    """When a new zone is created, check all existing routes and notify affected users (owners + favorites)."""
     try:
         zone_shape = shape(zone_doc.get("buffered_geometry", zone_doc["geometry"]))
         original_zone_shape = shape(zone_doc["geometry"])
         
-        # Get all routes
         all_routes = await db.routes.find({}, {"_id": 0}).to_list(5000)
         
         for route in all_routes:
-            if route["user_id"] == "anonymous":
-                continue
             try:
                 route_shape = shape(route["geometry"])
                 is_contained = original_zone_shape.contains(route_shape) or zone_shape.contains(route_shape)
@@ -684,42 +681,60 @@ async def check_routes_against_new_zone(zone_doc):
                 if is_contained or is_intersecting:
                     if is_contained:
                         conflict_type = "contained"
-                        title = f"CRITICAL: Route '{route['name']}' is inside new hunting zone"
-                        message = (
-                            f"Your route '{route['name']}' is completely inside the new hunting zone "
-                            f"'{zone_doc['name']}' ({zone_doc.get('association_name', '')}).\n"
-                            f"Active: {zone_doc['start_time'][:16]} - {zone_doc['end_time'][:16]}.\n"
-                            f"Please plan an alternative route for your safety."
-                        )
+                        overlap_pct = 100.0
                     else:
                         conflict_type = "intersects"
                         intersection = route_shape.intersection(zone_shape)
                         overlap_length = intersection.length if hasattr(intersection, 'length') else 0
                         route_length = route_shape.length if route_shape.length > 0 else 1
                         overlap_pct = min(round((overlap_length / route_length) * 100, 1), 100)
-                        title = f"WARNING: Route '{route['name']}' crosses new hunting zone"
-                        message = (
-                            f"Your route '{route['name']}' intersects ({overlap_pct}%) with the new hunting zone "
-                            f"'{zone_doc['name']}' ({zone_doc.get('association_name', '')}).\n"
-                            f"Active: {zone_doc['start_time'][:16]} - {zone_doc['end_time'][:16]}.\n"
-                            f"Review your route before heading out."
-                        )
                     
-                    await create_notification(
-                        user_id=route["user_id"],
-                        notif_type="zone_conflict",
-                        title=title,
-                        message=message,
-                        data={
-                            "route_id": route["id"],
-                            "route_name": route["name"],
-                            "zone_id": zone_doc["id"],
-                            "zone_name": zone_doc["name"],
-                            "conflict_type": conflict_type,
-                            "zone_start": zone_doc["start_time"],
-                            "zone_end": zone_doc["end_time"]
-                        }
-                    )
+                    notif_data = {
+                        "route_id": route["id"],
+                        "route_name": route["name"],
+                        "zone_id": zone_doc["id"],
+                        "zone_name": zone_doc["name"],
+                        "conflict_type": conflict_type,
+                        "zone_start": zone_doc["start_time"],
+                        "zone_end": zone_doc["end_time"]
+                    }
+                    
+                    # Collect all users to notify (owner + favoriters)
+                    users_to_notify = set()
+                    if route["user_id"] != "anonymous":
+                        users_to_notify.add(route["user_id"])
+                    
+                    # Find users who favorited this route
+                    favs = await db.favorites.find({"route_id": route["id"]}, {"_id": 0}).to_list(5000)
+                    for fav in favs:
+                        users_to_notify.add(fav["user_id"])
+                    
+                    for uid in users_to_notify:
+                        is_owner = uid == route["user_id"]
+                        if is_contained:
+                            title = f"CRITICAL: {'Your' if is_owner else 'Favorite'} route '{route['name']}' inside new zone"
+                            message = (
+                                f"{'Your' if is_owner else 'Favorite'} route '{route['name']}' is completely inside "
+                                f"the new hunting zone '{zone_doc['name']}' ({zone_doc.get('association_name', '')}).\n"
+                                f"Active: {zone_doc['start_time'][:16]} - {zone_doc['end_time'][:16]}.\n"
+                                f"Do NOT use this route during hunting hours."
+                            )
+                        else:
+                            title = f"WARNING: {'Your' if is_owner else 'Favorite'} route '{route['name']}' crosses new zone"
+                            message = (
+                                f"{'Your' if is_owner else 'Favorite'} route '{route['name']}' intersects ({overlap_pct}%) "
+                                f"with the new hunting zone '{zone_doc['name']}' ({zone_doc.get('association_name', '')}).\n"
+                                f"Active: {zone_doc['start_time'][:16]} - {zone_doc['end_time'][:16]}.\n"
+                                f"Review this route before heading out."
+                            )
+                        
+                        await create_notification(
+                            user_id=uid,
+                            notif_type="zone_conflict",
+                            title=title,
+                            message=message,
+                            data=notif_data
+                        )
             except Exception as e:
                 logger.error(f"Error checking route {route.get('id')} against new zone: {e}")
                 continue
