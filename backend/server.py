@@ -1,3 +1,20 @@
+import dns.resolver
+import logging
+
+logger = logging.getLogger(__name__)
+
+try:
+    # Resolver muy temprano y con fallback múltiple
+    resolver = dns.resolver.Resolver(configure=False)
+    resolver.nameservers = ['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1', '9.9.9.9']  # + Quad9
+    dns.resolver.default_resolver = resolver
+
+    # Test rápido para debug (borra después si quieres)
+    test = dns.resolver.resolve('_mongodb._tcp.cluster0.ng0tdne.mongodb.net', 'SRV')
+    logger.info(f"SRV test OK: {test.response.to_text()}")
+except Exception as e:
+    logger.error(f"SRV DNS override failed: {e}")
+
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, Query, Header
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
@@ -28,7 +45,14 @@ load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+client = AsyncIOMotorClient(
+    mongo_url,
+    serverSelectionTimeoutMS=60000,   # 60s para elegir server
+    connectTimeoutMS=60000,
+    socketTimeoutMS=60000,
+    retryWrites=True,
+    retryReads=True
+)
 db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'rangeguard-secret-key-change-in-production')
