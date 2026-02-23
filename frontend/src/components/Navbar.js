@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
-import { Shield, Menu, X, Sun, Moon, Globe, Map, Route, LayoutDashboard, User, LogOut, Bell } from 'lucide-react';
+import { Shield, Menu, X, Sun, Moon, Globe, Map, Route, LayoutDashboard, User, LogOut, Bell, Compass, Heart } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
