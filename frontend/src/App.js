@@ -12,6 +12,7 @@ import MapPage from "./pages/MapPage";
 import AdminPage from "./pages/AdminPage";
 import RoutesPage from "./pages/RoutesPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import ExplorePage from "./pages/ExplorePage";
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading } = useAuth();
