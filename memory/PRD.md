@@ -37,21 +37,21 @@ Collaborative web app for hunting safety. Hunting associations mark temporary ac
 - Auth pages (login/register) with role selection
 - Admin zone management with polygon drawing tool (leaflet-draw)
 - Routes page with GPX upload, intersection checking, PDF download
-- **Routes map shows active hunting zones** with buffer zones (red polygons)
-- **Visual intersection alert banner** (green=safe, orange=crosses, red=CRITICAL inside) with conflict type badges
-- **Containment detection fixed**: route fully inside zone now detected as CRITICAL (100% overlap)
-- **In-app notification inbox** (/notifications) with unread count, tabs, mark-read, delete
-- **Auto-notifications on route upload**: system checks against all zones and notifies user
-- **Auto-notifications on zone creation**: system checks all existing routes and notifies affected users
-- **Notification bell** in navbar with real-time unread count badge (polls every 30s)
-- Toggle button to show/hide hunting zones on routes map
-- Intersection API returns full zone geometry + conflict_type (contained/intersects/buffer)
+- Routes map shows active hunting zones with buffer zones
+- Visual intersection alert with conflict types (CRITICAL/WARNING/CAUTION)
+- Containment detection: route fully inside zone = CRITICAL (100%)
+- In-app notification inbox with unread count, tabs, mark-read, delete
+- Auto-notifications on route upload against all zones
+- Auto-notifications on zone creation against all routes + favorites
+- Notification bell in navbar with real-time unread count (polls 30s)
+- **Explore Routes page** (/explore): Browse all public routes shared by hikers
+- **Favorites system**: Add/remove routes to favorites with heart toggle
+- **Favorites tab**: View favorited routes with route details and map
+- **Route search**: Filter public routes by name
+- **Auto-alerts for favorites**: When new zone created, users who favorited affected routes get notified
 - Language toggle (ES/EN) working
 - Dark/light theme toggle working
-- Navbar with responsive mobile menu
-- Footer with safety notice
-- Buffer zone computation (Shapely)
-- MongoDB indexes for performance
+- Responsive mobile-first design
 
 ## Prioritized Backlog
 ### P0 (Critical)
