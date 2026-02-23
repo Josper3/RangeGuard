@@ -2,6 +2,14 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+
+import dns.resolver
+
+# Override DNS resolvers ANTES de cualquier import o uso de motor/pymongo
+resolver = dns.resolver.Resolver(configure=False)
+resolver.nameservers = ['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1']
+dns.resolver.default_resolver = resolver
+
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
@@ -23,6 +31,7 @@ from fpdf import FPDF
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
