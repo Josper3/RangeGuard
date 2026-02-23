@@ -19,10 +19,15 @@ from shapely.geometry import shape, LineString, Polygon, mapping
 from shapely.ops import unary_union
 import json
 import io
+import dns.resolver
 from fpdf import FPDF
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+resolver = dns.resolver.Resolver(configure=False)
+resolver.nameservers = ['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1']
+dns.resolver.default_resolver = resolver
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
