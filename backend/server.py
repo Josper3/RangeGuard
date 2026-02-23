@@ -953,6 +953,8 @@ async def startup_db():
         await db.notifications.create_index("id", unique=True)
         await db.notifications.create_index([("user_id", 1), ("read", 1)])
         await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
+        await db.favorites.create_index([("user_id", 1), ("route_id", 1)], unique=True)
+        await db.favorites.create_index("route_id")
         logger.info("Database indexes created successfully")
     except Exception as e:
         logger.error(f"Index creation error: {e}")
