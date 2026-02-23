@@ -47,6 +47,7 @@ export const Navbar = () => {
 
   const navLinks = [
     { to: '/map', label: t('nav_map'), icon: Map },
+    { to: '/explore', label: t('explore_title'), icon: Compass },
     ...(user ? [{ to: '/routes', label: t('nav_routes'), icon: Route }] : []),
     ...(isAdmin ? [{ to: '/admin', label: t('nav_admin'), icon: LayoutDashboard }] : []),
   ];
