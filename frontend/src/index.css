@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+@layer base {
+    :root {
+        --background: 30 6% 96%;
+        --foreground: 20 14% 4%;
+        --card: 0 0% 100%;
+        --card-foreground: 20 14% 4%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 20 14% 4%;
+        --primary: 144 63% 15%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 30 6% 92%;
+        --secondary-foreground: 25 5% 32%;
+        --muted: 30 6% 92%;
+        --muted-foreground: 25 5% 45%;
+        --accent: 30 6% 92%;
+        --accent-foreground: 25 5% 32%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 24 6% 83%;
+        --input: 24 6% 83%;
+        --ring: 144 63% 15%;
+        --chart-1: 144 63% 15%;
+        --chart-2: 173 58% 39%;
+        --chart-3: 197 37% 24%;
+        --chart-4: 43 74% 66%;
+        --chart-5: 27 87% 67%;
+        --radius: 0.5rem;
+    }
+    .dark {
+        --background: 20 14% 4%;
+        --foreground: 30 6% 96%;
+        --card: 24 10% 10%;
+        --card-foreground: 30 6% 96%;
+        --popover: 24 10% 10%;
+        --popover-foreground: 30 6% 96%;
+        --primary: 142 71% 45%;
+        --primary-foreground: 20 14% 4%;
+        --secondary: 24 10% 14%;
+        --secondary-foreground: 30 6% 96%;
+        --muted: 24 10% 14%;
+        --muted-foreground: 24 5% 60%;
+        --accent: 24 10% 14%;
+        --accent-foreground: 30 6% 96%;
+        --destructive: 0 63% 31%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 24 10% 14%;
+        --input: 24 10% 14%;
+        --ring: 142 71% 45%;
+        --chart-1: 220 70% 50%;
+        --chart-2: 160 60% 45%;
+        --chart-3: 30 80% 55%;
+        --chart-4: 280 65% 60%;
+        --chart-5: 340 75% 55%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+
+    [data-debug-wrapper="true"] > * {
+        margin-left: inherit;
+        margin-right: inherit;
+        margin-top: inherit;
+        margin-bottom: inherit;
+        padding-left: inherit;
+        padding-right: inherit;
+        padding-top: inherit;
+        padding-bottom: inherit;
+        column-gap: inherit;
+        row-gap: inherit;
+        gap: inherit;
+        border-left-width: inherit;
+        border-right-width: inherit;
+        border-top-width: inherit;
+        border-bottom-width: inherit;
+        border-left-style: inherit;
+        border-right-style: inherit;
+        border-top-style: inherit;
+        border-bottom-style: inherit;
+        border-left-color: inherit;
+        border-right-color: inherit;
+        border-top-color: inherit;
+        border-bottom-color: inherit;
+    }
+}
