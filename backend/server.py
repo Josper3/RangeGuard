@@ -27,6 +27,7 @@ from shapely.geometry import shape, LineString, Polygon, mapping
 from shapely.ops import unary_union
 import json
 import io
+import dns.resolver
 from fpdf import FPDF
 
 ROOT_DIR = Path(__file__).parent
