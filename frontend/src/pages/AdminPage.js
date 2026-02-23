@@ -93,12 +93,13 @@ export default function AdminPage() {
   const headers = { Authorization: `Bearer ${token}` };
 
   const fetchZones = useCallback(async () => {
-    try {
-      const res = await axios.get(`${API}/zones/my/list`, { headers });
-      setZones(res.data);
-    } catch (err) {
-      console.error(err);
-    }
+    const headers = { Authorization: `Bearer ${token}` }; 
+        try {
+            const res = await axios.get(`${API}/zones/my/list`, { headers });
+            setZones(res.data);
+        } catch (err) {
+            console.error(err);
+        }
   }, [token]);
 
   useEffect(() => {
