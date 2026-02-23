@@ -27,6 +27,7 @@ class HuntingSafetyAPITester:
                 print(f"   Status: {status_code}")
             if response:
                 print(f"   Response: {response}")
+            self.failed_tests.append(f"{name}: {status_code} - {response}")
 
     def run_test(self, name, method, endpoint, expected_status, data=None, headers=None):
         """Run a single API test"""
