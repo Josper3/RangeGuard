@@ -390,6 +390,113 @@ async def get_routes(user = Depends(get_current_user)):
     routes = await db.routes.find({"user_id": user["id"]}, {"_id": 0}).to_list(1000)
     return routes
 
+@api_router.get("/routes/public")
+async def get_public_routes(search: Optional[str] = None):
+    """Get all public routes for browsing."""
+    query = {"is_public": {"$ne": False}}
+    if search:
+        query["name"] = {"$regex": search, "$options": "i"}
+    routes = await db.routes.find(query, {"_id": 0}).to_list(500)
+    # Strip geometry coordinates for listing (too much data) - include summary
+    result = []
+    for r in routes:
+        coords = r.get("geometry", {}).get("coordinates", [])
+        result.append({
+            "id": r["id"],
+            "name": r["name"],
+            "user_id": r["user_id"],
+            "owner_name": r.get("owner_name", "Unknown"),
+            "file_name": r.get("file_name", ""),
+            "is_public": r.get("is_public", True),
+            "point_count": len(coords),
+            "created_at": r["created_at"],
+            "geometry": r["geometry"]
+        })
+    return result
+
+@api_router.get("/routes/{route_id}")
+async def get_route_detail(route_id: str):
+    """Get a single route with full geometry."""
+    route = await db.routes.find_one({"id": route_id}, {"_id": 0})
+    if not route:
+        raise HTTPException(status_code=404, detail="Route not found")
+    return route
+
+@api_router.put("/routes/{route_id}/visibility")
+async def toggle_route_visibility(route_id: str, user = Depends(get_current_user)):
+    """Toggle a route's public/private status."""
+    route = await db.routes.find_one({"id": route_id}, {"_id": 0})
+    if not route:
+        raise HTTPException(status_code=404, detail="Route not found")
+    if route["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Not your route")
+    new_vis = not route.get("is_public", True)
+    await db.routes.update_one({"id": route_id}, {"$set": {"is_public": new_vis}})
+    return {"is_public": new_vis}
+
+# ==================== FAVORITES ====================
+
+@api_router.post("/favorites/{route_id}")
+async def add_favorite(route_id: str, user = Depends(get_current_user)):
+    """Add a route to user's favorites."""
+    route = await db.routes.find_one({"id": route_id}, {"_id": 0})
+    if not route:
+        raise HTTPException(status_code=404, detail="Route not found")
+    
+    existing = await db.favorites.find_one({"user_id": user["id"], "route_id": route_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="Already in favorites")
+    
+    fav_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "route_id": route_id,
+        "route_name": route["name"],
+        "owner_name": route.get("owner_name", "Unknown"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.favorites.insert_one(fav_doc)
+    fav_doc.pop("_id", None)
+    return fav_doc
+
+@api_router.delete("/favorites/{route_id}")
+async def remove_favorite(route_id: str, user = Depends(get_current_user)):
+    """Remove a route from user's favorites."""
+    result = await db.favorites.delete_one({"user_id": user["id"], "route_id": route_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Not in favorites")
+    return {"message": "Removed from favorites"}
+
+@api_router.get("/favorites")
+async def get_favorites(user = Depends(get_current_user)):
+    """Get user's favorite routes with full route data."""
+    favs = await db.favorites.find({"user_id": user["id"]}, {"_id": 0}).to_list(500)
+    route_ids = [f["route_id"] for f in favs]
+    routes = await db.routes.find({"id": {"$in": route_ids}}, {"_id": 0}).to_list(500)
+    routes_map = {r["id"]: r for r in routes}
+    
+    result = []
+    for fav in favs:
+        route = routes_map.get(fav["route_id"])
+        if route:
+            result.append({
+                "favorite_id": fav["id"],
+                "route_id": fav["route_id"],
+                "route_name": route["name"],
+                "owner_name": route.get("owner_name", "Unknown"),
+                "geometry": route["geometry"],
+                "is_own": route["user_id"] == user["id"],
+                "favorited_at": fav["created_at"],
+                "route_created_at": route["created_at"]
+            })
+    return result
+
+@api_router.get("/favorites/ids")
+async def get_favorite_ids(user = Depends(get_current_user)):
+    """Get just the route IDs the user has favorited (for quick UI checks)."""
+    favs = await db.favorites.find({"user_id": user["id"]}, {"_id": 0, "route_id": 1}).to_list(500)
+    return [f["route_id"] for f in favs]
+
 @api_router.delete("/routes/{route_id}")
 async def delete_route(route_id: str, user = Depends(get_current_user)):
     route = await db.routes.find_one({"id": route_id}, {"_id": 0})
