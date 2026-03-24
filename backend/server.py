@@ -3,17 +3,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-try:
+#try:
     # Resolver muy temprano y con fallback múltiple
-    resolver = dns.resolver.Resolver(configure=False)
-    resolver.nameservers = ['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1', '9.9.9.9']  # + Quad9
-    dns.resolver.default_resolver = resolver
+    #resolver = dns.resolver.Resolver(configure=False)
+    #resolver.nameservers = ['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1', '9.9.9.9']  # + Quad9
+    #dns.resolver.default_resolver = resolver
 
     # Test rápido para debug (borra después si quieres)
-    test = dns.resolver.resolve('_mongodb._tcp.cluster0.ng0tdne.mongodb.net', 'SRV')
-    logger.info(f"SRV test OK: {test.response.to_text()}")
-except Exception as e:
-    logger.error(f"SRV DNS override failed: {e}")
+    #test = dns.resolver.resolve('_mongodb._tcp.cluster0.ng0tdne.mongodb.net', 'SRV')
+    #logger.info(f"SRV test OK: {test.response.to_text()}")
+#except Exception as e:
+#    logger.error(f"SRV DNS override failed: {e}")
 
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, Query, Header
 from fastapi.responses import StreamingResponse
@@ -956,7 +956,7 @@ async def get_stats():
 async def root():
     return {"message": "RangeGuard API running"}
 
-# Include the router
+# ==================== INCLUIR ROUTER Y MIDDLEWARE ====================
 app.include_router(api_router)
 
 app.add_middleware(
@@ -967,6 +967,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ==================== STARTUP Y SHUTDOWN EVENTS ====================
 @app.on_event("startup")
 async def startup_db():
     # Create indexes for geospatial queries
@@ -988,3 +989,10 @@ async def startup_db():
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+# ==================== PARA EJECUCIÓN EN RENDER / LOCAL ====================
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("server:app", host="0.0.0.0", port=port, log_level="info")
