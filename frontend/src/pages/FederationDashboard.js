@@ -121,7 +121,8 @@ export default function FederationDashboard() {
     } finally { setProcessing(null); }
   };
 
-  const pendingSocieties = societies.filter(s => !s.approved);
+  const pendingSocieties = societies.filter(s => (s.registration_status || (s.approved ? 'approved' : 'pending')) === 'pending');
+  const rejectedSocieties = societies.filter(s => s.registration_status === 'rejected');
   const pendingActivities = activities.filter(a => a.status === 'pending');
 
   const activitiesWithGeometry = useMemo(() => activities.filter(a => a.geometry?.coordinates?.[0]?.length > 0), [activities]);
@@ -184,15 +185,20 @@ export default function FederationDashboard() {
                 </CardContent>
               </Card>
             ) : (
-              societies.map(soc => (
-                <Card key={soc.id} className={`border-stone-200 dark:border-stone-800 ${!soc.approved ? 'border-l-4 border-l-yellow-500' : ''}`} data-testid={`society-${soc.id}`}>
+              societies.map(soc => {
+                const regStatus = soc.registration_status || (soc.approved ? 'approved' : 'pending');
+                const isPending = regStatus === 'pending';
+                const isRejected = regStatus === 'rejected';
+                const isApproved = regStatus === 'approved';
+                return (
+                <Card key={soc.id} className={`border-stone-200 dark:border-stone-800 ${isPending ? 'border-l-4 border-l-yellow-500' : ''} ${isRejected ? 'border-l-4 border-l-red-500 opacity-70' : ''}`} data-testid={`society-${soc.id}`}>
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-stone-800 dark:text-stone-100">{soc.society_name || soc.name}</h3>
-                          <Badge className={soc.approved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
-                            {soc.approved ? t('fed_approved_label') : t('fed_society_pending')}
+                          <Badge className={isApproved ? 'bg-green-100 text-green-700' : isRejected ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}>
+                            {isApproved ? t('fed_approved_label') : isRejected ? t('fed_rejected_label') : t('fed_society_pending')}
                           </Badge>
                         </div>
                         <div className="text-xs text-stone-500 space-y-0.5">
@@ -202,7 +208,7 @@ export default function FederationDashboard() {
                           <div>Registro: {new Date(soc.created_at).toLocaleDateString()}</div>
                         </div>
                       </div>
-                      {!soc.approved && (
+                      {isPending && (
                         <div className="flex gap-2 shrink-0">
                           <Button size="sm" onClick={() => handleSocietyAction(soc.id, 'approve')}
                             disabled={processing === soc.id} data-testid={`approve-society-${soc.id}`}
@@ -219,7 +225,8 @@ export default function FederationDashboard() {
                     </div>
                   </CardContent>
                 </Card>
-              ))
+                );
+              })
             )}
           </div>
         ) : (

@@ -43,13 +43,17 @@ export default function SocietyDashboard() {
 
   useEffect(() => { fetch(); }, [fetch]);
 
+  const isRejected = user?.registration_status === 'rejected';
+
   if (!user?.approved) {
     return (
       <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center px-4">
-        <Card className="max-w-md w-full border-yellow-300 dark:border-yellow-700">
+        <Card className={`max-w-md w-full ${isRejected ? 'border-red-300 dark:border-red-700' : 'border-yellow-300 dark:border-yellow-700'}`}>
           <CardContent className="p-8 text-center">
-            <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-lg font-bold text-stone-800 dark:text-stone-100 mb-2">{t('auth_pending_approval')}</h2>
+            <AlertTriangle className={`w-12 h-12 mx-auto mb-4 ${isRejected ? 'text-red-500' : 'text-yellow-500'}`} />
+            <h2 className="text-lg font-bold text-stone-800 dark:text-stone-100 mb-2">
+              {isRejected ? t('auth_registration_rejected') : t('auth_pending_approval')}
+            </h2>
             <p className="text-sm text-stone-500">{user?.society_name} - CIF: {user?.cif}</p>
           </CardContent>
         </Card>

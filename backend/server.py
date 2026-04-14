@@ -163,6 +163,7 @@ async def register(data: UserRegister):
         "society_name": data.society_name or "", "cif": data.cif or "",
         "responsible_name": data.responsible_name or "", "responsible_phone": data.responsible_phone or "",
         "approved": data.role == "hiker",
+        "registration_status": "approved" if data.role == "hiker" else "pending",
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user_doc)
@@ -193,8 +194,8 @@ async def list_societies(user=Depends(require_role("federation"))):
 
 @api_router.put("/federation/societies/{society_id}/approve")
 async def approve_society(society_id: str, user=Depends(require_role("federation"))):
-    result = await db.users.update_one({"id": society_id, "role": "society"}, {"$set": {"approved": True}})
-    if result.modified_count == 0:
+    result = await db.users.update_one({"id": society_id, "role": "society"}, {"$set": {"approved": True, "registration_status": "approved"}})
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Society not found")
     # Notify society
     await create_notification(society_id, "society_approved", "Sociedad aprobada", "Tu sociedad ha sido aprobada por la federacion. Ya puedes registrar actividades.", {})
@@ -202,7 +203,7 @@ async def approve_society(society_id: str, user=Depends(require_role("federation
 
 @api_router.put("/federation/societies/{society_id}/reject")
 async def reject_society(society_id: str, user=Depends(require_role("federation"))):
-    result = await db.users.update_one({"id": society_id, "role": "society"}, {"$set": {"approved": False}})
+    result = await db.users.update_one({"id": society_id, "role": "society"}, {"$set": {"approved": False, "registration_status": "rejected"}})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Society not found")
     return {"message": "Society rejected"}
