@@ -203,7 +203,7 @@ async def approve_society(society_id: str, user=Depends(require_role("federation
 @api_router.put("/federation/societies/{society_id}/reject")
 async def reject_society(society_id: str, user=Depends(require_role("federation"))):
     result = await db.users.update_one({"id": society_id, "role": "society"}, {"$set": {"approved": False}})
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Society not found")
     return {"message": "Society rejected"}
 
