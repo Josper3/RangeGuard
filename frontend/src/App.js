@@ -9,16 +9,24 @@ import { Toaster } from "./components/ui/sonner";
 import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import MapPage from "./pages/MapPage";
-import AdminPage from "./pages/AdminPage";
 import RoutesPage from "./pages/RoutesPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ExplorePage from "./pages/ExplorePage";
+import SocietyDashboard from "./pages/SocietyDashboard";
+import ActivityForm from "./pages/ActivityForm";
+import ActivityDetail from "./pages/ActivityDetail";
+import FederationDashboard from "./pages/FederationDashboard";
+import RegularParticipantsPage from "./pages/RegularParticipantsPage";
 
-const ProtectedRoute = ({ children, adminOnly = false }) => {
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-green-800 border-t-transparent rounded-full" /></div>;
   if (!user) return <Navigate to="/login" />;
-  if (adminOnly && user.role !== 'admin') return <Navigate to="/map" />;
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    if (user.role === 'society') return <Navigate to="/society" />;
+    if (user.role === 'federation') return <Navigate to="/federation" />;
+    return <Navigate to="/map" />;
+  }
   return children;
 };
 
@@ -35,13 +43,30 @@ function AppContent() {
             <Route path="/map" element={<MapPage />} />
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/routes" element={
-              <ProtectedRoute><RoutesPage /></ProtectedRoute>
-            } />
-            <Route path="/admin" element={
-              <ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>
+              <ProtectedRoute allowedRoles={["hiker"]}><RoutesPage /></ProtectedRoute>
             } />
             <Route path="/notifications" element={
               <ProtectedRoute><NotificationsPage /></ProtectedRoute>
+            } />
+            {/* Society routes */}
+            <Route path="/society" element={
+              <ProtectedRoute allowedRoles={["society"]}><SocietyDashboard /></ProtectedRoute>
+            } />
+            <Route path="/society/activity/new" element={
+              <ProtectedRoute allowedRoles={["society"]}><ActivityForm /></ProtectedRoute>
+            } />
+            <Route path="/society/activity/:activityId" element={
+              <ProtectedRoute allowedRoles={["society"]}><ActivityDetail /></ProtectedRoute>
+            } />
+            <Route path="/society/activity/:activityId/edit" element={
+              <ProtectedRoute allowedRoles={["society"]}><ActivityForm /></ProtectedRoute>
+            } />
+            <Route path="/society/participants" element={
+              <ProtectedRoute allowedRoles={["society"]}><RegularParticipantsPage /></ProtectedRoute>
+            } />
+            {/* Federation routes */}
+            <Route path="/federation" element={
+              <ProtectedRoute allowedRoles={["federation"]}><FederationDashboard /></ProtectedRoute>
             } />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

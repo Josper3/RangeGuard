@@ -119,7 +119,7 @@ export default function ActivityDetail() {
           </div>
           <div className="flex gap-2">
             {canEdit && (
-              <Button variant="outline" onClick={() => navigate(`/society/activity/${activityId}`)} className="gap-2">
+              <Button variant="outline" onClick={() => navigate(`/society/activity/${activityId}/edit`)} className="gap-2" data-testid="edit-activity-btn">
                 <FileText className="w-4 h-4" /> {t('act_edit')}
               </Button>
             )}
