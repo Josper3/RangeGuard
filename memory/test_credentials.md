@@ -10,7 +10,7 @@
 - Password: test1234
 - Role: hiker
 
-## Test Society (NOT approved yet - needs federation approval)
+## Test Society (approved by federation during testing)
 - Email: sociedad@test.com
 - Password: test1234
 - Role: society

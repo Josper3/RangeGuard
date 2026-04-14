@@ -1,80 +1,86 @@
 # RangeGuard - PRD (Product Requirements Document)
 
 ## Original Problem Statement
-Collaborative web app for hunting safety. Hunting associations mark temporary activity zones (cotos) on interactive maps, hikers verify if their planned routes intersect with those zones. Preventive purpose to avoid accidents.
+Aplicacion web colaborativa usando mapas interactivos para seguridad en la caza. Senderistas verifican si sus rutas intersectan con zonas de caza. Reestructuracion a 3 roles: Senderista, Sociedad de Caza, Federacion.
 
 ## Architecture
 - **Frontend**: React + Leaflet/OpenStreetMap + Shadcn UI + Tailwind CSS
-- **Backend**: FastAPI (Python) + MongoDB
-- **Auth**: JWT with bcrypt
+- **Backend**: FastAPI (Python) + MongoDB (Motor)
+- **Auth**: JWT with bcrypt, 3 roles (hiker, society, federation)
 - **Maps**: Leaflet + react-leaflet + leaflet-draw
-- **Geospatial**: Shapely (Python) for intersection calculations
-- **PDF**: fpdf2 for report generation
+- **Geospatial**: Shapely (Python) for intersection/containment calculations
+- **PDF**: fpdf2 for safety report generation
 - **GPX Parsing**: gpxpy
 - **i18n**: Custom React context (ES/EN)
 
 ## User Personas
-1. **Admin (Hunting Association)**: Registers with CIF/org name, creates/manages hunting zones with polygons, dates/times, buffer zones
-2. **Hiker/Trail Runner**: Registers simply, uploads GPX routes, checks intersections with hunting zones
-3. **Visitor**: Public access to map view without account
+1. **Senderista (Hiker)**: Explores routes, checks intersections with hunting zones, manages favorites, receives notifications
+2. **Sociedad de Caza (Hunting Society)**: Registers Batidas/Ganchos activities with participants, draws hunting zones on map, submits for federation approval, records results
+3. **Federacion (Federation/Admin)**: Approves society registrations, approves/rejects activity requests, views dashboard
 
 ## Core Requirements
-- Interactive map with hunting zone overlays (red polygons with buffer zones)
-- Polygon drawing tool for admins to define zone boundaries
-- GPX file upload and route visualization
-- Route-zone intersection checker with visual alerts
-- Date/time filtering for active zones
-- PDF report generation for intersection results
-- JWT authentication with role-based access
-- Bilingual interface (Spanish/English)
-- Light/dark theme toggle
-- Mobile responsive design
 
-## What's Been Implemented (Feb 16, 2026)
-- Full backend API: auth, zones CRUD, route upload, intersection check, PDF reports, stats
-- Landing page with hero, stats, features section
-- Interactive map page with Leaflet, zone overlays, legend, sidebar
-- Auth pages (login/register) with role selection
-- Admin zone management with polygon drawing tool (leaflet-draw)
-- Routes page with GPX upload, intersection checking, PDF download
-- Routes map shows active hunting zones with buffer zones
-- Visual intersection alert with conflict types (CRITICAL/WARNING/CAUTION)
-- Containment detection: route fully inside zone = CRITICAL (100%)
-- In-app notification inbox with unread count, tabs, mark-read, delete
-- Auto-notifications on route upload against all zones
-- Auto-notifications on zone creation against all routes + favorites
-- Notification bell in navbar with real-time unread count (polls 30s)
-- **Explore Routes page** (/explore): Browse all public routes shared by hikers
-- **Favorites system**: Add/remove routes to favorites with heart toggle
-- **Favorites tab**: View favorited routes with route details and map
-- **Route search**: Filter public routes by name
-- **Auto-alerts for favorites**: When new zone created, users who favorited affected routes get notified
-- Language toggle (ES/EN) working
-- Dark/light theme toggle working
-- Responsive mobile-first design
+### Senderista
+- Interactive map with hunting zone overlays
+- GPX file upload and route visualization
+- Route-zone intersection checker with visual alerts (CRITICAL/WARNING)
+- Date/time filtering for active zones
+- PDF safety report generation
+- Explore public routes and favorites system
+- Notifications for route conflicts
+
+### Sociedad de Caza
+- Register with CIF, society name, responsible person details
+- Requires federation approval before creating activities
+- Create Batidas and Ganchos (Gancho: max 15 hunters, 30 dogs)
+- Activity data: responsible, coto matricula, date, location, authorization, species
+- Participant management (name, DNI, role, dog count)
+- Activity lifecycle: draft -> pending -> approved/rejected -> in_progress -> completed
+- Record results: species (sex, weight ranges, trophies), observations, incidents
+- Regular participants list for quick selection
+
+### Federacion
+- Approve/reject society registrations
+- Approve/reject activity requests with optional notes
+- Dashboard with summary statistics
+
+## Key DB Schema
+- `users`: {id, email, password_hash, role, name, cif, society_name, approved, ...}
+- `activities`: {id, activity_type, status, society_id, geometry, participants, results, ...}
+- `routes`: {id, name, geometry, user_id, is_public}
+- `favorites`: {id, user_id, route_id}
+- `notifications`: {id, user_id, type, title, message, read}
+- `regular_participants`: {id, society_id, name, dni, default_role, dog_count}
+
+## What's Been Implemented (Apr 14, 2026)
+- Full 3-role backend API (auth, activities CRUD, routes, intersections, notifications, PDF, regular participants)
+- Federation seeded account (federacion@rangeguard.com / federacion2024)
+- Landing page with stats
+- Auth pages (login/register) with role selection (hiker vs society)
+- Role-based routing and navbar navigation
+- Federation Dashboard (approve societies, approve/reject activities with notes)
+- Society Dashboard (list activities with status filters)
+- Activity Form (create/edit with map drawing, participants, species)
+- Activity Detail (view details, submit results)
+- Regular Participants page (CRUD for frequent participants)
+- Map page (view active hunting zones on map)
+- Routes page (upload GPX, check intersections, download PDF)
+- Explore page (browse public routes, favorites)
+- Notifications page with unread count
+- Bilingual ES/EN interface
+- Dark/light theme
 
 ## Prioritized Backlog
-### P0 (Critical)
-- All core features implemented
-
 ### P1 (Important)
-- Push notifications for route-zone conflicts
-- Offline mode with Service Workers
-- Historical zone patterns view
-- TCX file support (in addition to GPX)
+- Activity start/complete flow (change status to in_progress, then complete with results)
+- PDF generation updated for activities vs old zones
+- Push notifications
+- TCX file support
 
 ### P2 (Nice to have)
-- Email notifications for saved routes entering zones
-- Incident reporting system
-- User profile/settings page
+- Email notifications
+- Incident reporting
+- User profile/settings
 - Zone calendar view
-- Real-time zone updates (WebSockets)
-- WCAG accessibility audit
+- Real-time updates (WebSockets)
 - Admin analytics dashboard
-
-## Next Tasks
-1. Add push/email notifications when saved routes enter new zones
-2. TCX file parsing support
-3. Offline map caching with Service Workers
-4. Historical zone analysis view
-5. Enhanced admin analytics
