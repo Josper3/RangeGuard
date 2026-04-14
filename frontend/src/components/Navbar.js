@@ -105,15 +105,29 @@ export const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-2">
-            <Button
-              variant="ghost" size="icon"
-              onClick={() => switchLang(lang === 'es' ? 'en' : 'es')}
-              data-testid="lang-toggle"
-              className="text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100"
-            >
-              <Globe className="w-4 h-4" />
-              <span className="ml-1 text-xs font-mono uppercase">{lang}</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost" size="icon"
+                  data-testid="lang-toggle"
+                  className="text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100"
+                >
+                  <Globe className="w-4 h-4" />
+                  <span className="ml-1 text-xs font-mono uppercase">{lang}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[120px]">
+                <DropdownMenuItem onClick={() => switchLang('es')} data-testid="lang-es" className={lang === 'es' ? 'font-semibold bg-green-50 dark:bg-green-900/20' : ''}>
+                  Castellano
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => switchLang('va')} data-testid="lang-va" className={lang === 'va' ? 'font-semibold bg-green-50 dark:bg-green-900/20' : ''}>
+                  Valencia
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => switchLang('en')} data-testid="lang-en" className={lang === 'en' ? 'font-semibold bg-green-50 dark:bg-green-900/20' : ''}>
+                  English
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {user && (
               <Link to="/notifications" data-testid="nav-notifications">
                 <Button variant="ghost" size="icon" className="relative text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100">
@@ -191,9 +205,18 @@ export const Navbar = () => {
               </Link>
             )}
             <div className="flex items-center gap-2 pt-2 border-t border-stone-100 dark:border-stone-800">
-              <Button variant="ghost" size="sm" onClick={() => switchLang(lang === 'es' ? 'en' : 'es')}>
-                <Globe className="w-4 h-4 mr-1" /> {lang.toUpperCase()}
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Globe className="w-4 h-4 mr-1" /> {lang.toUpperCase()}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => switchLang('es')} className={lang === 'es' ? 'font-semibold' : ''}>Castellano</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => switchLang('va')} className={lang === 'va' ? 'font-semibold' : ''}>Valencia</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => switchLang('en')} className={lang === 'en' ? 'font-semibold' : ''}>English</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="ghost" size="sm" onClick={toggleTheme}>
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
