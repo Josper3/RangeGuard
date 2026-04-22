@@ -29,7 +29,7 @@ export default function RegularParticipantsPage() {
 
   const fetchParticipants = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/regular-participants`, { headers });
+      const res = await axios.get(`${API}/regular-participants`, { headers: { Authorization: `Bearer ${token}` } });
       setParticipants(res.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
